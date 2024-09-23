@@ -2,7 +2,8 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Babylon.js GLB Model Loader</title>
+
+    <title>Babylon.js sample code</title>
 
     <!-- Babylon.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
@@ -31,11 +32,13 @@
         margin: 0;
         padding: 0;
       }
+
       #renderCanvas {
         width: 100%;
         height: 100%;
         touch-action: none;
       }
+
       #canvasZone {
         width: 100%;
         height: 100%;
@@ -58,7 +61,6 @@
       var engine = null;
       var scene = null;
       var sceneToRender = null;
-
       var createDefaultEngine = function () {
         return new BABYLON.Engine(canvas, true, {
           preserveDrawingBuffer: true,
@@ -66,67 +68,49 @@
           disableWebGL2Support: false,
         });
       };
-
-      var createScene = function () {
-        var scene = new BABYLON.Scene(engine);
-        var camera = new BABYLON.ArcRotateCamera(
-          "camera",
-          BABYLON.Tools.ToRadians(90),
-          BABYLON.Tools.ToRadians(65),
-          10,
-          BABYLON.Vector3.Zero(),
-          scene
-        );
-        camera.attachControl(canvas, true);
-
-        var light = new BABYLON.HemisphericLight(
-          "light",
-          new BABYLON.Vector3(0, 1, 0),
-          scene
-        );
-        light.intensity = 0.7;
-
-        // Load the GLB model
-        BABYLON.SceneLoader.Append(
-          "https://francioniniccolo.github.io/babylon/",
-          "model.glb",
-          scene,
-          function (newMeshes) {
-            // Scale the model if necessary
-            newMeshes.forEach((mesh) => {
-              mesh.scaling = new BABYLON.Vector3(0.1, 0.1, 0.1); // Adjust scale as needed
-            });
-            console.log("Model loaded successfully");
-          },
-          null,
-          function (scene, message) {
-            console.error("Error loading model: ", message);
-          }
-        );
-
-        return scene;
+      class Playground {
+        static async CreateScene(engine) {
+          const scene = new BABYLON.Scene(engine);
+          // Create a default skybox with an environment.
+          const hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+            "textures/environment.dds",
+            scene
+          );
+          const currentSkybox = scene.createDefaultSkybox(hdrTexture, true);
+          await BABYLON.appendSceneAsync(
+            "https://francioniniccolo.github.io/babylon/model.glb",
+            scene
+          );
+          scene.createDefaultCameraOrLight(true, true, true);
+          const camera = scene.activeCamera;
+          camera.alpha = Math.PI / 2;
+          return scene;
+        }
+      }
+      createScene = function () {
+        return Playground.CreateScene(engine, engine.getRenderingCanvas());
       };
-
       window.initFunction = async function () {
         var asyncEngineCreation = async function () {
           try {
             return createDefaultEngine();
           } catch (e) {
             console.log(
-              "The available createEngine function failed. Creating the default engine instead"
+              "the available createEngine function failed. Creating the default engine instead"
             );
             return createDefaultEngine();
           }
         };
 
         window.engine = await asyncEngineCreation();
-        if (!engine) throw "Engine should not be null.";
+        if (!engine) throw "engine should not be null.";
         startRenderLoop(engine, canvas);
         window.scene = createScene();
       };
-
       initFunction().then(() => {
-        sceneToRender = scene;
+        scene.then((returnedScene) => {
+          sceneToRender = returnedScene;
+        });
       });
 
       // Resize
